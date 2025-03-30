@@ -21,7 +21,6 @@ concurrency:
 
 jobs:
   test:
-    if: github.repository == 'checkstyle/checkstyle'
     strategy:
       matrix:
         target:
@@ -29,7 +28,7 @@ jobs:
           - javadoc
         include:
           - target: java
-            BASELINE_SECONDS: 445.76
+            BASELINE_SECONDS:  40
             CONFIG_FILE: './config/benchmark-config.xml'
           - target: javadoc
             BASELINE_SECONDS: 481.41
@@ -48,11 +47,11 @@ jobs:
       - name: Checkout Pull Request Code
         uses: actions/checkout@v4
 
-      - name: Clone JDK 21 Repo
+      - name: Clone hadoop Repo
         uses: actions/checkout@v4
         with:
-          repository: openjdk/jdk21
-          path: ./.ci-temp/jdk21
+          repository: apache/hadoop
+          path: ./.ci-temp/hadoop
 
       - name: Setup local maven cache
         uses: actions/cache@v4
