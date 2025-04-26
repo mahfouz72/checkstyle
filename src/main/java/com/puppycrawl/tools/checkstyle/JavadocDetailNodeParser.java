@@ -23,6 +23,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
+import com.puppycrawl.tools.checkstyle.grammar.javadoc.JavadocCommentsLexer;
+import com.puppycrawl.tools.checkstyle.grammar.javadoc.JavadocCommentsParser;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -558,6 +560,63 @@ public class JavadocDetailNodeParser {
         }
         return result.toString();
     }
+
+    public DetailNode parse(DetailAST javadocCommentAst) {
+        blockCommentLineNumber = javadocCommentAst.getLineNo();
+
+        final String javadocComment = JavadocUtil.getJavadocCommentContent(javadocCommentAst);
+
+        // Use a new error listener each time to be able to use
+        // one check instance for multiple files to be checked
+        // without getting side effects.
+        final DescriptiveErrorListener errorListener = new DescriptiveErrorListener();
+
+        // Log messages should have line number in scope of file,
+        // not in scope of Javadoc comment.
+        // Offset is line number of beginning of Javadoc comment.
+        errorListener.setOffset(javadocCommentAst.getLineNo() - 1);
+
+        DetailNode tree = null;
+
+        try {
+            final JavadocCommentsLexer lexer =
+                        new JavadocCommentsLexer(CharStreams.fromString(javadocComment));
+
+            final CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+            final JavadocCommentsParser parser = new JavadocCommentsParser(tokens);
+
+            // set prediction mode to SLL to speed up parsing
+            parser.getInterpreter().setPredictionMode(PredictionMode.SLL);
+
+            // remove default error listeners
+            parser.removeErrorListeners();
+
+            final JavadocCommentsParser.JavadocContext javadoc = parser.javadoc();
+
+            tree = new JavadocCommentsAstVisitor().visit(javadoc);
+
+            adjustFirstLineToJavadocIndent(tree,
+                        javadocCommentAst.getColumnNo()
+                                + JAVADOC_START.length());
+        }
+        catch (ParseCancellationException | IllegalArgumentException ex) {
+
+        }
+
+        return tree;
+    }
+
+    private void adjustFirstLineToJavadocIndent(DetailAST tree, int javadocColumnNumber) {
+        if (tree.getLineNo() == blockCommentLineNumber) {
+            ((DetailAstImpl) tree).setColumnNo(tree.getColumnNo() + javadocColumnNumber);
+            while (tree.hasChildren()) {
+                tree = tree.getFirstChild();
+                adjustFirstLineToJavadocIndent(tree, javadocColumnNumber);
+            }
+        }
+    }
+
 
     /**
      * Custom error listener for JavadocParser that prints user readable errors.

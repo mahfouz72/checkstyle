@@ -1,0 +1,6 @@
+JAVADOC -> JAVADOC [0:0]
+|--LEADING_ASTERISK -> * [0:0]
+|--TEXT ->  int x = 3 * 6 [0:1]
+|--NEWLINE -> \n [0:15]
+|--LEADING_ASTERISK -> * [1:0]
+`--TEXT ->  xyz@gmail.com [1:1]
