@@ -78,4 +78,5 @@ public interface DetailNode {
      */
     int getIndex();
 
+    DetailNode getNextSibling();
 }

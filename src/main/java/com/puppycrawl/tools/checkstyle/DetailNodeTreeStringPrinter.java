@@ -21,9 +21,9 @@ package com.puppycrawl.tools.checkstyle;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import com.puppycrawl.tools.checkstyle.JavadocDetailNodeParser.ParseErrorMessage;
-import com.puppycrawl.tools.checkstyle.JavadocDetailNodeParser.ParseStatus;
 import com.puppycrawl.tools.checkstyle.api.DetailAST;
 import com.puppycrawl.tools.checkstyle.api.DetailNode;
 import com.puppycrawl.tools.checkstyle.api.FileText;
@@ -63,12 +63,8 @@ public final class DetailNodeTreeStringPrinter {
      * @throws IllegalArgumentException if there is an error parsing the Javadoc.
      */
     public static DetailNode parseJavadocAsDetailNode(DetailAST blockComment) {
-        final JavadocDetailNodeParser parser = new JavadocDetailNodeParser();
-        final ParseStatus status = parser.parseJavadocAsDetailNode(blockComment);
-        if (status.getParseErrorMessage() != null) {
-            throw new IllegalArgumentException(getParseErrorMessage(status.getParseErrorMessage()));
-        }
-        return status.getTree();
+        final JavadocDetailNodeParser javadocParser = new JavadocDetailNodeParser();
+        return javadocParser.parse(blockComment);
     }
 
     /**
@@ -121,7 +117,7 @@ public final class DetailNodeTreeStringPrinter {
                     .append(node.getLineNumber()).append(':').append(node.getColumnNumber())
                     .append(']').append(LINE_SEPARATOR)
                     .append(printTree(JavadocUtil.getFirstChild(node), rootPrefix, prefix));
-            node = JavadocUtil.getNextSibling(node);
+            node = node.getNextSibling();
         }
         return messageBuilder.toString();
     }
@@ -133,7 +129,7 @@ public final class DetailNodeTreeStringPrinter {
      * @return the indentation in String format.
      */
     private static String getIndentation(DetailNode node) {
-        final boolean isLastChild = JavadocUtil.getNextSibling(node) == null;
+        final boolean isLastChild = node.getNextSibling() == null;
         DetailNode currentNode = node;
         final StringBuilder indentation = new StringBuilder(1024);
         while (currentNode.getParent() != null) {
@@ -167,8 +163,10 @@ public final class DetailNodeTreeStringPrinter {
      * @return the root node of the parse tree.
      * @throws IOException if the file could not be read.
      */
+
     private static DetailNode parseFile(File file) throws IOException {
-        final FileText text = new FileText(file, System.getProperty("file.encoding"));
+        final FileText text = new FileText(file.getAbsoluteFile(),
+            System.getProperty("file.encoding", StandardCharsets.UTF_8.name()));
         return parseJavadocAsDetailNode(text.getFullText().toString());
     }
 
